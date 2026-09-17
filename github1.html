@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anaesthetic Logbook</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0f1a24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Logbook">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" href="./icon-192.png">
+<style>
+:root{
+  --bg:#f4f7f8;
+  --surface:#ffffff;
+  --surface-2:#eef3f5;
+  --ink:#10202b;
+  --slate:#5a7183;
+  --line:#d8e2e7;
+  --accent:#0d6f80;
+  --accent-soft:#e0f2f5;
+  --warn:#9a5a06;
+  --warn-soft:#fdf1df;
+  --danger:#a32a2a;
+  --radius:12px;
+  --tap:48px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1219;
+    --surface:#15202a;
+    --surface-2:#1c2a35;
+    --ink:#e7eef2;
+    --slate:#93a8b6;
+    --line:#2a3945;
+    --accent:#45c3d6;
+    --accent-soft:#14323a;
+    --warn:#e0a458;
+    --warn-soft:#332616;
+    --danger:#f08a8a;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;
+  line-height:1.45;
+  font-variant-numeric:tabular-nums;
+  overscroll-behavior-y:none;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:20;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+}
+.hrow{display:flex;align-items:baseline;gap:10px}
+h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-0.01em}
+.count{font-size:14px;color:var(--slate);margin-left:auto;font-weight:600}
+.tools{display:flex;gap:8px;margin-top:10px}
+.search{
+  flex:1;min-width:0;height:40px;padding:0 12px;
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:10px;
+}
+.iconbtn{
+  width:40px;height:40px;flex:none;border-radius:10px;
+  background:var(--surface-2);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:17px;
+}
+
+/* ---------- banners ---------- */
+.banner{
+  margin:12px 16px 0;padding:11px 13px;border-radius:10px;
+  background:var(--warn-soft);color:var(--warn);
+  font-size:13.5px;line-height:1.4;
+  border:1px solid color-mix(in srgb,var(--warn) 25%,transparent);
+}
+.banner button{text-decoration:underline;font-weight:600;color:inherit}
+
+/* ---------- list ---------- */
+main{padding:0 0 120px}
+.empty{padding:64px 32px;text-align:center;color:var(--slate)}
+.empty strong{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+.list{margin-top:12px;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.case{
+  display:block;width:100%;text-align:left;
+  padding:13px 16px 13px 13px;
+  border-bottom:1px solid var(--line);
+  border-left:4px solid var(--rail,var(--line));
+  background:var(--surface);
+}
+.case:last-child{border-bottom:none}
+.case:active{background:var(--surface-2)}
+.c1{display:flex;align-items:baseline;gap:8px}
+.c-date{font-weight:700;font-size:15px;flex:none}
+.c-spec{font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-sup{margin-left:auto;flex:none;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:6px}
+.c2{margin-top:3px;font-size:13.5px;color:var(--slate);display:flex;flex-wrap:wrap;gap:4px 10px}
+.c3{margin-top:3px;font-size:13px;color:var(--slate);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flag{color:var(--warn);font-weight:600}
+
+/* ---------- fab ---------- */
+.fab{
+  position:fixed;left:16px;right:16px;
+  bottom:calc(env(safe-area-inset-bottom) + 16px);
+  height:54px;border-radius:14px;
+  background:var(--accent);color:#fff;
+  font-size:16px;font-weight:700;z-index:30;
+  box-shadow:0 6px 20px rgba(13,111,128,.3);
+}
+@media (prefers-color-scheme: dark){.fab{color:#06171c}}
+
+/* ---------- sheet ---------- */
+.sheet{
+  position:fixed;inset:0;z-index:50;background:var(--bg);
+  display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform .22s ease;
+  visibility:hidden;
+}
+.sheet.open{transform:translateY(0);visibility:visible}
+.sheet-head{
+  flex:none;display:flex;align-items:center;gap:12px;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.sheet-head h2{flex:1;margin:0;font-size:17px;font-weight:700;text-align:center}
+.link{font-size:16px;color:var(--accent);font-weight:600}
+.link.strong{font-weight:700}
+.sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 16px calc(env(safe-area-inset-bottom) + 40px)}
+
+/* ---------- form ---------- */
+.field{margin-top:18px}
+.field > label, .grouplabel{display:block;font-size:13.5px;font-weight:600;color:var(--slate);margin-bottom:7px}
+input[type=date],input[type=number],input[type=text],select,textarea{
+  width:100%;min-height:var(--tap);padding:10px 12px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;font-size:16px;
+}
+textarea{min-height:76px;resize:vertical}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--slate) 50%),linear-gradient(135deg,var(--slate) 50%,transparent 50%);background-position:calc(100% - 20px) 22px,calc(100% - 14px) 22px;background-size:6px 6px;background-repeat:no-repeat}
+.row{display:flex;gap:10px}
+.row > .field{flex:1;margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  min-height:42px;padding:9px 13px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--line);
+  font-size:14.5px;font-weight:500;
+}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+@media (prefers-color-scheme: dark){.chip[aria-pressed=true]{color:#06171c}}
+.seg{display:flex;gap:8px}
+.seg .chip{flex:1;text-align:center;padding:9px 4px}
+.hint{font-size:12.5px;color:var(--slate);margin-top:6px}
+.toggle{display:flex;align-items:center;gap:12px;min-height:var(--tap);padding:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.toggle label{flex:1;font-weight:500;font-size:15.5px}
+.toggle input{width:22px;height:22px;accent-color:var(--accent)}
+.hidden{display:none}
+.destroy{
+  width:100%;min-height:var(--tap);margin:28px 0 8px;
+  border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--danger);font-weight:600;
+}
+
+/* ---------- menu ---------- */
+.menu{position:fixed;inset:0;z-index:60;display:none}
+.menu.open{display:block}
+.scrim{position:absolute;inset:0;background:rgba(6,14,20,.45)}
+.menu-card{
+  position:absolute;left:12px;right:12px;
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  background:var(--surface);border-radius:14px;overflow:hidden;
+}
+.menu-card button{display:block;width:100%;text-align:left;padding:15px 18px;font-size:16px;border-bottom:1px solid var(--line)}
+.menu-card button:last-child{border-bottom:none;font-weight:600;text-align:center;color:var(--slate)}
+.menu-card .sub{display:block;font-size:12.5px;color:var(--slate);font-weight:400;margin-top:2px}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 80px);
+  z-index:70;background:var(--ink);color:var(--bg);
+  padding:12px 16px;border-radius:10px;font-size:14.5px;font-weight:500;
+  text-align:center;opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <h1>Anaesthetic logbook</h1>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="tools">
+    <input class="search" id="search" type="search" placeholder="Search cases" autocomplete="off">
+    <button class="iconbtn" id="menuBtn" aria-label="Export and backup">&#9776;</button>
+  </div>
+</header>
+
+<div id="banners"></div>
+
+<main>
+  <div id="list"></div>
+</main>
+
+<button class="fab" id="newBtn">Log a case</button>
+
+<!-- ============ form sheet ============ -->
+<section class="sheet" id="sheet" aria-hidden="true">
+  <div class="sheet-head">
+    <button class="link" id="cancelBtn">Cancel</button>
+    <h2 id="sheetTitle">New case</h2>
+    <button class="link strong" id="saveBtn">Save</button>
+  </div>
+  <div class="sheet-body">
+
+    <div class="row" style="margin-top:18px">
+      <div class="field">
+        <label for="f-date">Date of case</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label for="f-age">Age (years)</label>
+        <input type="number" id="f-age" inputmode="decimal" step="0.1" min="0" max="120" placeholder="e.g. 67">
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="grouplabel">ASA</span>
+      <div class="seg" id="f-asa"></div>
+    </div>
+
+    <div class="field">
+      <span class="grouplabel">Day case or CEPOD</span>
+      <div class="seg" id="f-casetype"></div>
+    </div>
+
+    <div class="field hidden" id="priorityField">
+      <label for="f-priority">Priority</label>
+      <select id="f-priority">
+        <option value="">Not recorded</option>
+        <option>Immediate (1)</option>
+        <option>Urgent (2)</option>
+        <option>Expedited (3)</option>
+        <option>Elective (4)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="f-specialty">Primary specialty</label>
+      <select id="f-specialty"></select>
+    </div>
+
+    <div class="field">
+      <span class="grouplabel">Supervision</span>
+      <div class="seg" id="f-supervision"></div>
+      <p class="hint" id="supHint">1 — direct, supervisor present. 2a — supervisor in theatre suite. 2b — supervisor on site. 3 — supervisor off site.</p>
+    </div>
+
+    <div class="field">
+      <div class="toggle">
+        <label for="f-teaching">Teaching delivered by me</label>
+        <input type="checkbox" id="f-teaching">
+      </div>
+      <input type="text" id="f-teachingNote" class="hidden" style="margin-top:8px" placeholder="Who, and what topic">
+    </div>
+
+    <div class="field">
+      <span class="grouplabel">Mode of anaesthesia</span>
+      <div class="chips" id="f-modes"></div>
+    </div>
+
+    <div class="field">
+      <span class="grouplabel">Regional technique</span>
+      <div class="chips" id="f-regional"></div>
+    </div>
+
+    <div class="field">
+      <span class="grouplabel">Procedures</span>
+      <div class="chips" id="f-procedures"></div>
+    </div>
+
+    <div class="field">
+      <label for="f-notes">Operation and notes</label>
+      <textarea id="f-notes" placeholder="Optional"></textarea>
+    </div>
+
+    <button class="destroy hidden" id="deleteBtn">Delete this case</button>
+  </div>
+</section>
+
+<!-- ============ menu ============ -->
+<div class="menu" id="menu">
+  <div class="scrim" data-close></div>
+  <div class="menu-card">
+    <button id="mXlsx">Export to Excel<span class="sub">Formatted .xlsx with a summary sheet</span></button>
+    <button id="mJson">Save a backup file<span class="sub">Everything, in a file you can re-import</span></button>
+    <button id="mImport">Restore from a backup<span class="sub">Adds cases it doesn't already have</span></button>
+    <button id="mStorage">Storage and app info</button>
+    <button data-close>Close</button>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json,application/json" class="hidden">
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   1. Options
+   ============================================================ */
+const ASA = ['1','2','3','4','5','6'];
+const CASETYPE = ['Day case','Elective inpatient','CEPOD'];
+const SUPERVISION = ['1','2a','2b','3'];
+const SPECIALTIES = ['General surgery','Trauma and orthopaedics','Urology','ENT','Maxillofacial and dental',
+  'Ophthalmology','Gynaecology','Obstetrics','Vascular','Breast','Plastics and burns','Paediatric surgery',
+  'Cardiothoracic','Neurosurgery','Bariatric','Endoscopy and GI','Interventional radiology','Pain',
+  'Intensive care','Emergency and resuscitation','Transfer','Other'];
+const MODES = ['General — volatile','General — TIVA','Sedation','Spinal','Epidural','Combined spinal-epidural',
+  'Regional alone','Local infiltration','Monitoring only'];
+const REGIONAL = ['Interscalene','Supraclavicular','Infraclavicular','Axillary','Erector spinae','Serratus anterior',
+  'PECS','Paravertebral','TAP','Rectus sheath','Quadratus lumborum','Fascia iliaca','Femoral','Adductor canal',
+  'Sciatic','Popliteal','Ankle','Wrist','Penile','Caudal','Scalp','Eye block'];
+const PROCEDURES = ['Supraglottic airway','Direct laryngoscopy','Videolaryngoscopy','Rapid sequence induction',
+  'Awake fibreoptic','Nasal intubation','Double lumen tube','Bronchial blocker','Tracheostomy care',
+  'Arterial line','Central venous line','Ultrasound-guided cannula','Intraosseous access','Cardiac output monitoring',
+  'Depth of anaesthesia monitoring','Nasogastric tube','Urinary catheter','Cell salvage','Blood transfusion',
+  'Cardioversion','Point-of-care ultrasound','Difficult airway rescue'];
+
+/* ============================================================
+   2. Storage — IndexedDB primary, localStorage mirror
+   ============================================================ */
+const LS_KEY = 'anaes-logbook-v1';
+let cases = [];
+let meta = { savedAt:null, lastBackup:null };
+let editingId = null;
+
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('anaes-logbook',1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore('kv');
+    r.onsuccess = ()=> res(r.result);
+    r.onerror = ()=> rej(r.error);
+  });
+}
+async function idbGet(){
+  try{
+    const db = await idbOpen();
+    return await new Promise((res,rej)=>{
+      const q = db.transaction('kv','readonly').objectStore('kv').get('state');
+      q.onsuccess = ()=> res(q.result || null);
+      q.onerror = ()=> rej(q.error);
+    });
+  }catch(e){ return null; }
+}
+async function idbPut(state){
+  try{
+    const db = await idbOpen();
+    await new Promise((res,rej)=>{
+      const t = db.transaction('kv','readwrite');
+      t.objectStore('kv').put(state,'state');
+      t.oncomplete = res; t.onerror = ()=> rej(t.error);
+    });
+    return true;
+  }catch(e){ return false; }
+}
+function lsGet(){
+  try{ const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
+function lsPut(state){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); return true; }catch(e){ return false; }
+}
+
+async function load(){
+  const [a,b] = await Promise.all([idbGet(), Promise.resolve(lsGet())]);
+  const pick = (!a) ? b : (!b) ? a : ((a.savedAt||0) >= (b.savedAt||0) ? a : b);
+  cases = (pick && Array.isArray(pick.cases)) ? pick.cases : [];
+  meta.savedAt = pick ? (pick.savedAt || null) : null;
+  meta.lastBackup = pick ? (pick.lastBackup || null) : null;
+  // heal whichever store was behind
+  if (pick) { idbPut(pick); lsPut(pick); }
+}
+async function save(){
+  meta.savedAt = Date.now();
+  const state = { version:1, savedAt: meta.savedAt, lastBackup: meta.lastBackup, cases };
+  const ok1 = await idbPut(state);
+  const ok2 = lsPut(state);
+  if (!ok1 && !ok2) toast("Couldn't save — export a backup now");
+  return ok1 || ok2;
+}
+async function markBackedUp(){
+  meta.savedAt = Date.now(); meta.lastBackup = Date.now();
+  const state = { version:1, savedAt: meta.savedAt, lastBackup: meta.lastBackup, cases };
+  await idbPut(state); lsPut(state); renderBanners();
+}
+
+/* ============================================================
+   3. Helpers
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(()=> t.classList.remove('show'), 2600);
+}
+function fmtDate(iso){
+  if(!iso) return 'No date';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y.slice(2)}`;
+}
+function todayISO(){
+  const n = new Date(); n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
+  return n.toISOString().slice(0,10);
+}
+const railFor = { '1':'#0d6f80', '2a':'#3f9aa8', '2b':'#7fbdc6', '3':'#c3dde1' };
+
+/* ============================================================
+   4. Build the form controls
+   ============================================================ */
+function buildSeg(host, values, name){
+  host.innerHTML = '';
+  values.forEach(v=>{
+    const b = document.createElement('button');
+    b.type='button'; b.className='chip'; b.textContent=v;
+    b.setAttribute('aria-pressed','false'); b.dataset.value=v;
+    b.addEventListener('click', ()=>{
+      [...host.children].forEach(c=> c.setAttribute('aria-pressed', c===b ? (c.getAttribute('aria-pressed')==='true' ? 'false':'true') : 'false'));
+      if(name==='casetype') togglePriority();
+    });
+    host.appendChild(b);
+  });
+}
+function buildChips(host, values){
+  host.innerHTML = '';
+  values.forEach(v=>{
+    const b = document.createElement('button');
+    b.type='button'; b.className='chip'; b.textContent=v;
+    b.setAttribute('aria-pressed','false'); b.dataset.value=v;
+    b.addEventListener('click', ()=> b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')==='true' ? 'false':'true'));
+    host.appendChild(b);
+  });
+}
+function segValue(host){
+  const on = host.querySelector('[aria-pressed=true]');
+  return on ? on.dataset.value : '';
+}
+function setSeg(host, val){
+  [...host.children].forEach(c=> c.setAttribute('aria-pressed', c.dataset.value===val ? 'true':'false'));
+}
+function chipValues(host){
+  return [...host.querySelectorAll('[aria-pressed=true]')].map(b=> b.dataset.value);
+}
+function setChips(host, arr){
+  const set = new Set(arr||[]);
+  [...host.children].forEach(c=> c.setAttribute('aria-pressed', set.has(c.dataset.value) ? 'true':'false'));
+}
+function togglePriority(){
+  $('#priorityField').classList.toggle('hidden', segValue($('#f-casetype')) !== 'CEPOD');
+}
+
+buildSeg($('#f-asa'), ASA, 'asa');
+buildSeg($('#f-casetype'), CASETYPE, 'casetype');
+buildSeg($('#f-supervision'), SUPERVISION, 'supervision');
+buildChips($('#f-modes'), MODES);
+buildChips($('#f-regional'), REGIONAL);
+buildChips($('#f-procedures'), PROCEDURES);
+$('#f-specialty').innerHTML = '<option value="">Choose a specialty</option>' +
+  SPECIALTIES.map(s=> `<option>${s}</option>`).join('');
+$('#f-teaching').addEventListener('change', e=>{
+  $('#f-teachingNote').classList.toggle('hidden', !e.target.checked);
+});
+
+/* ============================================================
+   5. List rendering
+   ============================================================ */
+function summaryLine(c){
+  const bits = [];
+  if(c.age !== '' && c.age != null) bits.push(`${c.age} y`);
+  if(c.asa) bits.push(`ASA ${c.asa}`);
+  if(c.caseType) bits.push(c.caseType === 'CEPOD' && c.priority ? `CEPOD, ${c.priority.replace(/ \(\d\)/,'').toLowerCase()}` : c.caseType);
+  return bits;
+}
+function haystack(c){
+  return [c.date, c.specialty, c.asa && 'asa '+c.asa, c.caseType, c.priority,
+    c.supervision && 'supervision '+c.supervision, c.teaching ? 'teaching' : '',
+    c.teachingNote, ...(c.modes||[]), ...(c.regional||[]), ...(c.procedures||[]), c.notes]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function render(){
+  const q = $('#search').value.trim().toLowerCase();
+  const sorted = [...cases].sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0));
+  const shown = q ? sorted.filter(c => haystack(c).includes(q)) : sorted;
+
+  $('#count').textContent = cases.length === 0 ? '' :
+    (q ? `${shown.length} of ${cases.length}` : `${cases.length} ${cases.length===1?'case':'cases'}`);
+
+  const list = $('#list');
+  if(!shown.length){
+    list.innerHTML = `<div class="empty">${cases.length
+      ? '<strong>No matches</strong>Try a different search term.'
+      : '<strong>Nothing logged yet</strong>Your first case takes about twenty seconds.'}</div>`;
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  const wrap = document.createElement('div');
+  wrap.className = 'list';
+  shown.forEach(c=>{
+    const b = document.createElement('button');
+    b.className = 'case';
+    b.style.setProperty('--rail', railFor[c.supervision] || 'var(--line)');
+    const mode = (c.modes||[]).join(', ');
+    const extras = [...(c.regional||[]), ...(c.procedures||[])].join(', ');
+    b.innerHTML =
+      `<div class="c1">
+         <span class="c-date">${fmtDate(c.date)}</span>
+         <span class="c-spec">${esc(c.specialty || 'No specialty')}</span>
+         ${c.supervision ? `<span class="c-sup">${c.supervision}</span>` : ''}
+       </div>
+       <div class="c2">${summaryLine(c).map(x=>`<span>${esc(x)}</span>`).join('')}${c.teaching?'<span class="flag">Taught</span>':''}</div>
+       ${mode ? `<div class="c3">${esc(mode)}</div>` : ''}
+       ${extras ? `<div class="c3">${esc(extras)}</div>` : ''}`;
+    b.addEventListener('click', ()=> openForm(c.id));
+    wrap.appendChild(b);
+  });
+  frag.appendChild(wrap);
+  list.innerHTML = '';
+  list.appendChild(frag);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, ch=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+function renderBanners(){
+  const host = $('#banners');
+  host.innerHTML = '';
+  if(cases.length >= 5){
+    const days = meta.lastBackup ? Math.floor((Date.now()-meta.lastBackup)/864e5) : null;
+    if(days === null || days >= 14){
+      const d = document.createElement('div');
+      d.className = 'banner';
+      d.innerHTML = days === null
+        ? 'You have never saved a backup. <button id="bkNow">Save one now</button>'
+        : `Last backup was ${days} days ago. <button id="bkNow">Save one now</button>`;
+      host.appendChild(d);
+      d.querySelector('#bkNow').addEventListener('click', exportJson);
+    }
+  }
+}
+
+/* ============================================================
+   6. Form open / save / delete
+   ============================================================ */
+function openForm(id){
+  editingId = id || null;
+  const c = id ? cases.find(x=> x.id===id) : null;
+  $('#sheetTitle').textContent = c ? 'Edit case' : 'New case';
+  $('#deleteBtn').classList.toggle('hidden', !c);
+  $('#f-date').value = c ? (c.date||'') : todayISO();
+  $('#f-age').value = c ? (c.age ?? '') : '';
+  setSeg($('#f-asa'), c ? c.asa : '');
+  setSeg($('#f-casetype'), c ? c.caseType : '');
+  $('#f-priority').value = c ? (c.priority||'') : '';
+  $('#f-specialty').value = c ? (c.specialty||'') : '';
+  setSeg($('#f-supervision'), c ? c.supervision : '');
+  $('#f-teaching').checked = c ? !!c.teaching : false;
+  $('#f-teachingNote').value = c ? (c.teachingNote||'') : '';
+  $('#f-teachingNote').classList.toggle('hidden', !(c && c.teaching));
+  setChips($('#f-modes'), c ? c.modes : []);
+  setChips($('#f-regional'), c ? c.regional : []);
+  setChips($('#f-procedures'), c ? c.procedures : []);
+  $('#f-notes').value = c ? (c.notes||'') : '';
+  togglePriority();
+  const sheet = $('#sheet');
+  sheet.classList.add('open'); sheet.setAttribute('aria-hidden','false');
+  sheet.querySelector('.sheet-body').scrollTop = 0;
+}
+function closeForm(){
+  const sheet = $('#sheet');
+  sheet.classList.remove('open'); sheet.setAttribute('aria-hidden','true');
+  editingId = null;
+}
+async function saveForm(){
+  const date = $('#f-date').value;
+  const specialty = $('#f-specialty').value;
+  if(!date){ toast('Add the date of the case'); return; }
+  if(!specialty){ toast('Choose a primary specialty'); return; }
+  const caseType = segValue($('#f-casetype'));
+  const rec = {
+    id: editingId || uid(),
+    date,
+    age: $('#f-age').value === '' ? '' : Number($('#f-age').value),
+    asa: segValue($('#f-asa')),
+    caseType,
+    priority: caseType === 'CEPOD' ? $('#f-priority').value : '',
+    specialty,
+    supervision: segValue($('#f-supervision')),
+    teaching: $('#f-teaching').checked,
+    teachingNote: $('#f-teaching').checked ? $('#f-teachingNote').value.trim() : '',
+    modes: chipValues($('#f-modes')),
+    regional: chipValues($('#f-regional')),
+    procedures: chipValues($('#f-procedures')),
+    notes: $('#f-notes').value.trim(),
+    createdAt: editingId ? (cases.find(c=>c.id===editingId).createdAt) : Date.now(),
+    updatedAt: Date.now()
+  };
+  if(editingId){ cases = cases.map(c=> c.id===editingId ? rec : c); }
+  else { cases.push(rec); }
+  await save();
+  closeForm(); render(); renderBanners();
+  toast(editingId ? 'Case updated' : 'Case saved');
+}
+async function deleteCase(){
+  if(!editingId) return;
+  if(!confirm('Delete this case? This cannot be undone.')) return;
+  cases = cases.filter(c=> c.id !== editingId);
+  await save(); closeForm(); render(); renderBanners();
+  toast('Case deleted');
+}
+
+/* ============================================================
+   7. XLSX writer — no libraries
+   ============================================================ */
+const CRC_TABLE = (()=>{
+  const t = new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320 ^ (c>>>1) : c>>>1; t[n]=c>>>0; }
+  return t;
+})();
+function crc32(buf){
+  let c = 0xFFFFFFFF;
+  for(let i=0;i<buf.length;i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c>>>8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zipStore(files){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  for(const f of files){
+    const nameB = enc.encode(f.name);
+    const data = f.data;
+    const crc = crc32(data);
+    const lh = new Uint8Array(30 + nameB.length);
+    const dv = new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0x0800,true);
+    dv.setUint16(8,0,true); dv.setUint16(10,0,true); dv.setUint16(12,0x21,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,data.length,true); dv.setUint32(22,data.length,true);
+    dv.setUint16(26,nameB.length,true); dv.setUint16(28,0,true);
+    lh.set(nameB,30);
+    parts.push(lh, data);
+    const ch = new Uint8Array(46 + nameB.length);
+    const cv = new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
+    cv.setUint16(8,0x0800,true); cv.setUint16(10,0,true); cv.setUint16(12,0,true); cv.setUint16(14,0x21,true);
+    cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true); cv.setUint32(24,data.length,true);
+    cv.setUint16(28,nameB.length,true); cv.setUint32(42,offset,true);
+    ch.set(nameB,46);
+    central.push(ch);
+    offset += lh.length + data.length;
+  }
+  const cdSize = central.reduce((n,c)=> n + c.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);
+  ev.setUint16(8,files.length,true); ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cdSize,true); ev.setUint32(16,offset,true);
+  return new Blob([...parts, ...central, eocd], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+const X = s => String(s==null?'':s).replace(/[&<>"]/g, ch=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))
+                 .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+const colName = n => { let s=''; n++; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-m-1)/26; } return s; };
+function dateSerial(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return Math.round((Date.UTC(y,m-1,d) - Date.UTC(1899,11,30)) / 86400000);
+}
+/* styles: 0 body, 1 header, 2 date, 3 wrapped body, 4 bold, 5 title */
+const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts>
+<fonts count="4">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="14"/><name val="Calibri"/></font>
+</fonts>
+<fills count="3">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FF0D6F80"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left/><right/><top/><bottom style="thin"><color rgb="FFBFCED5"/></bottom><diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="6">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+
+function cellXml(ref, v, style){
+  if(v === '' || v == null) return `<c r="${ref}" s="${style}"/>`;
+  if(typeof v === 'number') return `<c r="${ref}" s="${style}"><v>${v}</v></c>`;
+  return `<c r="${ref}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>`;
+}
+function sheetXml(rows, opts){
+  opts = opts || {};
+  const cols = opts.widths ? `<cols>${opts.widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
+  const pane = opts.freeze ? `<sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView>` : `<sheetView workbookViewId="0"/>`;
+  const body = rows.map((row,r)=>{
+    const cells = row.map((cell,ci)=> cell === undefined ? '' : cellXml(colName(ci)+(r+1), cell.v, cell.s)).join('');
+    const h = (r===0 && opts.freeze) ? ' ht="30" customHeight="1"' : '';
+    return `<row r="${r+1}"${h}>${cells}</row>`;
+  }).join('');
+  const af = opts.autofilter ? `<autoFilter ref="A1:${colName(opts.autofilter-1)}${rows.length}"/>` : '';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews>${pane}</sheetViews>${cols}<sheetData>${body}</sheetData>${af}</worksheet>`;
+}
+
+const HEADERS = ['Date','Age (y)','ASA','Day case / CEPOD','Priority','Primary specialty','Supervision',
+  'Teaching delivered','Teaching detail','Mode of anaesthesia','Regional technique','Procedures','Operation and notes'];
+const WIDTHS  = [11,7,6,17,15,24,12,11,26,26,26,34,40];
+
+function buildWorkbook(){
+  const sorted = [...cases].sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+  const rows = [ HEADERS.map(h=> ({v:h, s:1})) ];
+  sorted.forEach(c=>{
+    rows.push([
+      c.date ? {v:dateSerial(c.date), s:2} : {v:'', s:0},
+      {v:(c.age===''||c.age==null)?'':Number(c.age), s:0},
+      {v:c.asa||'', s:0},
+      {v:c.caseType||'', s:0},
+      {v:c.priority||'', s:0},
+      {v:c.specialty||'', s:3},
+      {v:c.supervision||'', s:0},
+      {v:c.teaching?'Yes':'', s:0},
+      {v:c.teachingNote||'', s:3},
+      {v:(c.modes||[]).join('; '), s:3},
+      {v:(c.regional||[]).join('; '), s:3},
+      {v:(c.procedures||[]).join('; '), s:3},
+      {v:c.notes||'', s:3}
+    ]);
+  });
+
+  // summary sheet
+  const tally = (fn)=>{
+    const m = new Map();
+    sorted.forEach(c=>{ const vals = fn(c); (Array.isArray(vals)?vals:[vals]).forEach(v=>{ if(v) m.set(v,(m.get(v)||0)+1); }); });
+    return [...m.entries()].sort((a,b)=> b[1]-a[1]);
+  };
+  const s = [];
+  s.push([{v:'Logbook summary', s:5}]);
+  s.push([{v:'Generated', s:4},{v:new Date().toLocaleString('en-GB'), s:0}]);
+  s.push([{v:'Total cases', s:4},{v:sorted.length, s:0}]);
+  if(sorted.length){
+    s.push([{v:'Date range', s:4},{v:`${fmtDate(sorted[0].date)} to ${fmtDate(sorted[sorted.length-1].date)}`, s:0}]);
+  }
+  const blocks = [
+    ['Cases by specialty', c=> c.specialty],
+    ['Cases by supervision level', c=> c.supervision],
+    ['Cases by ASA', c=> c.asa],
+    ['Cases by day case / CEPOD', c=> c.caseType],
+    ['Mode of anaesthesia', c=> c.modes],
+    ['Regional techniques', c=> c.regional],
+    ['Procedures', c=> c.procedures]
+  ];
+  blocks.forEach(([title, fn])=>{
+    const t = tally(fn);
+    if(!t.length) return;
+    s.push([]);
+    s.push([{v:title, s:4}]);
+    t.forEach(([k,n])=> s.push([{v:k, s:0},{v:n, s:0}]));
+  });
+  const teaching = sorted.filter(c=> c.teaching).length;
+  s.push([]); s.push([{v:'Teaching sessions delivered', s:4},{v:teaching, s:0}]);
+
+  const enc = new TextEncoder();
+  const F = (name, str)=> ({name, data: enc.encode(str)});
+  return zipStore([
+    F('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`),
+    F('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`),
+    F('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Cases" sheetId="1" r:id="rId1"/><sheet name="Summary" sheetId="2" r:id="rId2"/></sheets>
+</workbook>`),
+    F('xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`),
+    F('xl/styles.xml', STYLES),
+    F('xl/worksheets/sheet1.xml', sheetXml(rows, {widths:WIDTHS, freeze:true, autofilter:HEADERS.length})),
+    F('xl/worksheets/sheet2.xml', sheetXml(s, {widths:[34,12]}))
+  ]);
+}
+
+/* ============================================================
+   8. Delivering files on iOS
+   ============================================================ */
+async function deliver(blob, filename){
+  const file = new File([blob], filename, {type: blob.type});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file]}); return true; }
+    catch(err){ if(err && err.name === 'AbortError') return false; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  return true;
+}
+function stamp(){ return new Date().toISOString().slice(0,10); }
+
+async function exportXlsx(){
+  if(!cases.length){ toast('No cases to export yet'); return; }
+  try{
+    const blob = buildWorkbook();
+    const done = await deliver(blob, `anaesthetic-logbook-${stamp()}.xlsx`);
+    if(done) toast('Excel file ready — save it to Files or send it on');
+  }catch(e){ toast('Export failed: ' + e.message); }
+}
+async function exportJson(){
+  const blob = new Blob([JSON.stringify({version:1, exportedAt:Date.now(), cases}, null, 2)], {type:'application/json'});
+  const done = await deliver(blob, `logbook-backup-${stamp()}.json`);
+  if(done){ await markBackedUp(); toast('Backup saved'); }
+}
+$('#fileInput').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    const incoming = Array.isArray(data) ? data : data.cases;
+    if(!Array.isArray(incoming)) throw new Error('No cases in that file');
+    const have = new Set(cases.map(c=> c.id));
+    let added = 0;
+    incoming.forEach(c=>{ if(c && c.id && !have.has(c.id)){ cases.push(c); added++; } });
+    await save(); render(); renderBanners();
+    toast(added ? `${added} case${added===1?'':'s'} restored` : 'Nothing new in that file');
+  }catch(err){ toast("Couldn't read that file"); }
+  e.target.value = '';
+});
+
+/* ============================================================
+   9. Wiring
+   ============================================================ */
+$('#newBtn').addEventListener('click', ()=> openForm(null));
+$('#cancelBtn').addEventListener('click', closeForm);
+$('#saveBtn').addEventListener('click', saveForm);
+$('#deleteBtn').addEventListener('click', deleteCase);
+$('#search').addEventListener('input', render);
+$('#menuBtn').addEventListener('click', ()=> $('#menu').classList.add('open'));
+document.querySelectorAll('[data-close]').forEach(el=> el.addEventListener('click', ()=> $('#menu').classList.remove('open')));
+$('#mXlsx').addEventListener('click', ()=>{ $('#menu').classList.remove('open'); exportXlsx(); });
+$('#mJson').addEventListener('click', ()=>{ $('#menu').classList.remove('open'); exportJson(); });
+$('#mImport').addEventListener('click', ()=>{ $('#menu').classList.remove('open'); $('#fileInput').click(); });
+$('#mStorage').addEventListener('click', async ()=>{
+  $('#menu').classList.remove('open');
+  let persisted = 'unknown';
+  try{ if(navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted() ? 'granted' : 'not granted'; }catch(e){}
+  const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  alert(
+    `Cases stored: ${cases.length}\n` +
+    `Running from home screen: ${standalone ? 'yes' : 'no'}\n` +
+    `Persistent storage: ${persisted}\n` +
+    `Last saved: ${meta.savedAt ? new Date(meta.savedAt).toLocaleString('en-GB') : 'never'}\n` +
+    `Last backup: ${meta.lastBackup ? new Date(meta.lastBackup).toLocaleString('en-GB') : 'never'}\n\n` +
+    (standalone ? '' : 'Add this to your home screen for storage that iOS will not clear.')
+  );
+});
+
+/* ============================================================
+   10. Start
+   ============================================================ */
+(async function init(){
+  try{ if(navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
+  await load();
+  render();
+  renderBanners();
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=> navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+})();
+</script>
+</body>
+</html>
